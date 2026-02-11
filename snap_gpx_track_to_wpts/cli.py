@@ -133,21 +133,27 @@ def duplicate_point(pt):
 
 
 def process_add(gpx_data, maxdist):
-    """Process all waypoints in 'add' mode."""
+    """Process all waypoints in 'add' mode.
+
+    Returns a set of waypoint indices that were matched (within maxdist).
+    """
+    matched = set()
     waypoints = gpx_data.waypoints
     if not waypoints:
-        return
+        return matched
 
     for track in gpx_data.tracks:
         for segment in track.segments:
             # Collect all insertions: (insert_index, [points_to_insert])
             insertions = []
 
-            for wpt in waypoints:
+            for wi, wpt in enumerate(waypoints):
                 dist, seg_idx, plat, plon, t, vertex_idx = find_closest_on_segment(wpt, segment)
 
                 if dist > maxdist:
                     continue
+
+                matched.add(wi)
 
                 if vertex_idx is not None:
                     # Closest point is an existing vertex — duplicate it and
@@ -173,21 +179,30 @@ def process_add(gpx_data, maxdist):
                 for p in reversed(pts):
                     segment.points.insert(idx, p)
 
+    return matched
+
 
 def process_move(gpx_data, maxdist):
-    """Process all waypoints in 'move' mode."""
+    """Process all waypoints in 'move' mode.
+
+    Returns a set of waypoint indices that were matched (within maxdist).
+    """
+    matched = set()
     waypoints = gpx_data.waypoints
     if not waypoints:
-        return
+        return matched
 
     for track in gpx_data.tracks:
         for segment in track.segments:
-            for wpt in waypoints:
+            for wi, wpt in enumerate(waypoints):
                 dist, vidx = find_closest_vertex(wpt, segment)
                 if dist > maxdist:
                     continue
+                matched.add(wi)
                 segment.points[vidx].latitude = wpt.latitude
                 segment.points[vidx].longitude = wpt.longitude
+
+    return matched
 
 
 def main():
@@ -205,6 +220,8 @@ def main():
                              "If given with a name: use that filename.")
     parser.add_argument("--overwrite", action="store_true",
                         help="Overwrite output file if it exists")
+    parser.add_argument("--drop-unmatched-wpts", action="store_true",
+                        help="Remove waypoints that were not snapped to any track")
     args = parser.parse_args()
 
     with open(args.i, "r", encoding="utf-8") as f:
@@ -219,9 +236,12 @@ def main():
         return
 
     if args.m == "add":
-        process_add(gpx_data, args.d)
+        matched = process_add(gpx_data, args.d)
     else:
-        process_move(gpx_data, args.d)
+        matched = process_move(gpx_data, args.d)
+
+    if args.drop_unmatched_wpts:
+        gpx_data.waypoints = [w for i, w in enumerate(gpx_data.waypoints) if i in matched]
 
     xml = gpx_data.to_xml()
 

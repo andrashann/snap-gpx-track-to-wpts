@@ -42,6 +42,7 @@ uv run snap-gpx-track-to-wpts -i infile.gpx [-d maxdistance] [-m mode] [-f [outf
 | `-d maxdistance` | No | `100` | Maximum distance (meters) from track to snap a waypoint; farther waypoints are discarded |
 | `-m mode` | No | `add` | `add`: finds the point on the track closest to the waypoint -- not necessarily a track point itself, it could be between two track points e.g. on long straight segments. If it is not a track point, then we create this closest location as a track point. Then we create a duplicate, and between the original and the duplicate, we add the location of the waypoint as another track point. `move`: moves the closest track point to the waypoint location |
 | `-f [outfile]` | No | stdout | If omitted: print to stdout. If `-f` with no argument: save to `<infile>_snapped_<maxdistance>.gpx`. If `-f outfile`: save to the specified file. |
+| `--drop-unmatched-wpts` | No | off | Remove waypoints from the output that were not snapped to any track (i.e. farther than `-d` from all tracks). |
 
 ## Notes
 
